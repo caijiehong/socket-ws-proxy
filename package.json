@@ -1,11 +1,15 @@
 {
-  "name": "socket-to-ws-proxy",
-  "version": "0.0.1",
+  "name": "socket-ws-proxy",
+  "version": "0.0.2",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
     "dev": "tsc --watch",
     "test": "node test/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caijiehong/socket-ws-proxy"
   },
   "dependencies": {
     "https-proxy-agent": "^2.2.1",

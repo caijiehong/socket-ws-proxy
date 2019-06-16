@@ -1,4 +1,4 @@
-# socket-to-ws-proxy
+# socket-ws-proxy
 
 proxy a tcp connect throught websocket
 
@@ -19,7 +19,7 @@ proxy a tcp connect throught websocket
 1. 找到一台可以访问 tcp-server 的服务器, 运行 ws-proxy-server
 
 ```JavaScript
-const { Server } = require('socket-to-ws-proxy')
+const { Server } = require('socket-ws-proxy')
 const port = 8801
 Server(port)
 ```
@@ -27,7 +27,7 @@ Server(port)
 2. 在本地服务器运行 ws-proxy-client
 
 ```JavaScript
-const { Client } = require('socket-to-ws-proxy')
+const { Client } = require('socket-ws-proxy')
 const opt = {
     localPort: 8802,
     wsProxyHost: "ws://your.remote.wsproxt:8801",
