@@ -7,10 +7,10 @@ async function main() {
 
   const opt = {
     localPort: 8802,
-    wsProxyHost: "ws://127.0.0.1:8801",
+    wsProxyHost: "http://127.0.0.1:8801",
     destHost: "127.0.0.1",
-    destPort: 8803
-    // agent: "http://127.0.0.1:8081"
+    destPort: 8803,
+    agent: "http://127.0.0.1:8081"
   };
   await Client(opt);
 

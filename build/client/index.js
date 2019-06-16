@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const WebSocket = require("ws");
+const io = require("socket.io-client");
 const net = require("net");
 const Url = require("url");
 const querystring = require("querystring");
@@ -20,37 +20,20 @@ function main(opt) {
                 const proxyUrl = Url.parse(opt.agent);
                 agent = new HttpsProxyAgent(proxyUrl);
             }
-            const ws = new WebSocket(url, {
+            const ws = io(url, {
                 agent
             });
             // 收到使用者的连接
             socket.on("data", data => {
-                console.log("proxy client data", [
-                    data.toString("utf8"),
-                    ws.readyState,
-                    WebSocket.OPEN
-                ]);
-                if (ws.readyState !== WebSocket.OPEN) {
-                    tmpBuffer.push(data);
-                }
-                else {
-                    ws.send(data);
-                }
+                console.log("proxy client data", [data.length]);
+                ws.emit("req", data);
             });
-            socket.on("close", () => {
-                ws.close();
-            });
-            ws.on("open", () => {
-                console.log("proxy client open");
-                let data;
-                while ((data = tmpBuffer.pop())) {
-                    ws.send(data);
-                }
-            });
-            ws.on("message", data => {
+            ws.on("res", data => {
                 socket.write(data);
             });
-            ws.on("close", () => {
+            ws.on("error", err => {
+                console.error("proxy client ws error");
+                console.error(err);
                 socket.destroy();
             });
         });

@@ -1,44 +1,30 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const WebSocket = require("ws");
+const IO = require("socket.io");
 const Url = require("url");
 const Qs = require("querystring");
 const net = require("net");
 function main(port) {
     const p = new Promise(resolve => {
-        const wss = new WebSocket.Server({ port }, () => {
-            console.log("proxy sever listenting", port);
-            resolve(wss);
-        });
-        wss.on("connection", function connection(ws, req) {
-            console.log("proxy server connection", req.url);
-            const url = Url.parse(req.url);
+        const io = IO();
+        io.on("connection", client => {
+            const url = Url.parse(client.request.url);
             const qs = Qs.parse(url.query);
-            const tmpBuffer = [];
             const socket = net.connect({
                 host: qs.destHost,
                 port: parseInt(qs.destPort, 10)
             }, () => {
                 console.log("proxy server connect to tcp server");
-                let tmp;
-                while ((tmp = tmpBuffer.pop())) {
-                    socket.write(tmp);
-                }
                 socket.on("data", data => {
-                    ws.send(data);
+                    client.emit("res", data);
                 });
             });
-            ws.on("message", function incoming(message) {
-                console.log("proxy server recevice", [message, socket.connecting]);
-                if (!socket.connecting) {
-                    socket.write(message);
-                }
-                else {
-                    tmpBuffer.push(message);
-                }
+            client.on("req", data => {
+                socket.write(data);
             });
         });
-        return wss;
+        io.listen(port);
+        resolve();
     });
     return p;
 }

@@ -1,4 +1,4 @@
-import * as WebSocket from "ws";
+import * as io from "socket.io-client";
 import * as net from "net";
 import * as Url from "url";
 import * as querystring from "querystring";
@@ -28,7 +28,7 @@ interface IOption {
 }
 
 function main(opt: IOption) {
-  const p = new Promise<WebSocket>(resolve => {
+  const p = new Promise(resolve => {
     const localServer = net.createServer(socket => {
       console.log("proxy client connection");
 
@@ -46,40 +46,23 @@ function main(opt: IOption) {
         agent = new HttpsProxyAgent(proxyUrl);
       }
 
-      const ws = new WebSocket(url, {
+      const ws = io(url, {
         agent
       });
 
       // 收到使用者的连接
       socket.on("data", data => {
-        console.log("proxy client data", [
-          data.toString("utf8"),
-          ws.readyState,
-          WebSocket.OPEN
-        ]);
-
-        if (ws.readyState !== WebSocket.OPEN) {
-          tmpBuffer.push(data);
-        } else {
-          ws.send(data);
-        }
-      });
-      socket.on("close", () => {
-        ws.close();
+        console.log("proxy client data", [data.length]);
+        ws.emit("req", data);
       });
 
-      ws.on("open", () => {
-        console.log("proxy client open");
+      ws.on("res", data => {
+        socket.write(data);
+      });
 
-        let data: Buffer;
-        while ((data = tmpBuffer.pop())) {
-          ws.send(data);
-        }
-      });
-      ws.on("message", data => {
-        socket.write(data as Buffer);
-      });
-      ws.on("close", () => {
+      ws.on("error", err => {
+        console.error("proxy client ws error");
+        console.error(err);
         socket.destroy();
       });
     });
