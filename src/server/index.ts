@@ -4,7 +4,7 @@ import * as Qs from "querystring";
 import * as net from "net";
 
 function main(port: number) {
-  const p = new Promise<WebSocket.Server>(resolve => {
+  const p = new Promise(resolve => {
     const io = IO();
     io.on("connection", client => {
       const url = Url.parse(client.request.url);
