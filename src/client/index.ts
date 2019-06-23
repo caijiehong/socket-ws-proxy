@@ -1,7 +1,6 @@
 import * as io from "socket.io-client";
 import * as net from "net";
 import * as Url from "url";
-import * as querystring from "querystring";
 import * as HttpsProxyAgent from "https-proxy-agent";
 
 interface IOption {
@@ -30,15 +29,12 @@ interface IOption {
 function main(opt: IOption) {
   const p = new Promise(resolve => {
     const localServer = net.createServer(socket => {
-      console.log("proxy client connection");
-
       const tmpBuffer: Buffer[] = [];
 
       const query = {
         destHost: opt.destHost,
         destPort: opt.destPort
       };
-      const url = `${opt.wsProxyHost}?${querystring.stringify(query)}`;
 
       let agent: HttpsProxyAgent;
       if (opt.agent) {
@@ -46,23 +42,37 @@ function main(opt: IOption) {
         agent = new HttpsProxyAgent(proxyUrl);
       }
 
-      const ws = io(url, {
+      const ws = io(opt.wsProxyHost, {
+        path: "/ws",
+        query,
         agent
       });
 
       // 收到使用者的连接
       socket.on("data", data => {
-        console.log("proxy client data", [data.length]);
-        ws.emit("req", data);
+        console.log("proxy client data", [data.length, ws.connected]);
+        if (ws.connected) {
+          ws.emit("req", data);
+        } else {
+          tmpBuffer.push(data);
+        }
       });
 
       ws.on("res", data => {
+        console.log("res", data.length);
+
         socket.write(data);
       });
 
-      ws.on("error", err => {
-        console.error("proxy client ws error");
-        console.error(err);
+      ws.on("connect", () => {
+        console.log("proxy clinet connect to proxy server", tmpBuffer.length);
+
+        let tmp: Buffer;
+        while ((tmp = tmpBuffer.pop())) {
+          ws.emit("req", tmp);
+        }
+      });
+      ws.on("disconnect", () => {
         socket.destroy();
       });
     });

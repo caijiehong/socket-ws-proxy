@@ -2,6 +2,8 @@ const net = require("net");
 function main(port) {
   const p = new Promise(resolve => {
     const server = net.createServer(socket => {
+      console.log("tcp server got connection");
+
       socket.on("data", msg => {
         console.log("tcp server receive");
         console.log(msg.toString("utf8"));
