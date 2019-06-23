@@ -22,43 +22,50 @@ function main(port) {
             const url = Url.parse(client.request.url);
             const qs = Qs.parse(url.query);
             const tmpBuffer = [];
-            const socket = net.connect({
-                host: qs.destHost,
-                port: parseInt(qs.destPort, 10)
-            }, () => {
-                console.log("proxy server connect to tcp server", tmpBuffer.length);
-                let tmp;
-                while ((tmp = tmpBuffer.pop())) {
-                    socket.write(tmp);
-                }
-                socket.on("data", data => {
-                    client.emit("res", data);
+            try {
+                const socket = net.connect({
+                    host: qs.destHost,
+                    port: parseInt(qs.destPort, 10)
+                }, () => {
+                    console.log("proxy server connect to tcp server", tmpBuffer.length);
+                    let tmp;
+                    while ((tmp = tmpBuffer.pop())) {
+                        socket.write(tmp);
+                    }
+                    socket.on("data", data => {
+                        client.emit("res", data);
+                    });
                 });
-            });
-            client.on("req", data => {
-                lastActive = new Date().getTime();
-                console.log("req", [data.length, socket.connecting]);
-                if (!socket.connecting) {
-                    socket.write(data);
-                }
-                else {
-                    tmpBuffer.push(data);
-                }
-            });
-            const clear = () => {
-                const now = new Date().getTime();
-                if (now - lastActive > 10000) {
-                    console.log("destroy after 10s");
-                    socket.destroy();
-                    client.disconnect();
-                }
-                else {
-                    setTimeout(clear, 10000);
-                }
-            };
-            setTimeout(clear, 10000);
+                client.on("req", data => {
+                    lastActive = new Date().getTime();
+                    console.log("req", [data.length, socket.connecting]);
+                    if (!socket.connecting) {
+                        socket.write(data);
+                    }
+                    else {
+                        tmpBuffer.push(data);
+                    }
+                });
+                const clear = () => {
+                    const now = new Date().getTime();
+                    if (now - lastActive > 10000) {
+                        console.log("destroy after 10s");
+                        socket.destroy();
+                        client.disconnect();
+                    }
+                    else {
+                        setTimeout(clear, 10000);
+                    }
+                };
+                setTimeout(clear, 10000);
+            }
+            catch (error) {
+                client.disconnect();
+            }
         });
-        hServer.listen(port);
+        hServer.listen(port, () => {
+            console.log("proxy server listen to", port);
+        });
         resolve();
     });
     return p;
