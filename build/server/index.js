@@ -5,6 +5,8 @@ const Url = require("url");
 const Qs = require("querystring");
 const net = require("net");
 const http = require("http");
+const Debug = require("debug");
+const debug = Debug("socket-ws-server");
 const WSPATH = "/ws";
 function main(port) {
     const p = new Promise(resolve => {
@@ -19,7 +21,7 @@ function main(port) {
         });
         io.on("connection", client => {
             let lastActive = new Date().getTime();
-            console.log("server receive connection", client.request.url);
+            debug("server receive connection", client.request.url);
             const url = Url.parse(client.request.url);
             const qs = Qs.parse(url.query);
             const tmpBuffer = [];
@@ -28,7 +30,7 @@ function main(port) {
                     host: qs.destHost,
                     port: parseInt(qs.destPort, 10)
                 }, () => {
-                    console.log("proxy server connect to tcp server", tmpBuffer.length);
+                    debug("proxy server connect to tcp server", tmpBuffer.length);
                     let tmp;
                     while ((tmp = tmpBuffer.pop())) {
                         socket.write(tmp);
@@ -39,7 +41,7 @@ function main(port) {
                 });
                 client.on("req", data => {
                     lastActive = new Date().getTime();
-                    console.log("req", [data.length, socket.connecting]);
+                    debug("req", [data.length, socket.connecting]);
                     if (!socket.connecting) {
                         socket.write(data);
                     }
@@ -50,7 +52,7 @@ function main(port) {
                 const clear = () => {
                     const now = new Date().getTime();
                     if (now - lastActive > 10000) {
-                        console.log("destroy after 10s");
+                        debug("destroy after 10s");
                         socket.destroy();
                         client.disconnect();
                     }
@@ -65,12 +67,12 @@ function main(port) {
             }
         });
         hServer.listen(port, () => {
-            console.log("proxy server listen to", port);
+            debug("proxy server listen to", port);
         });
         hServer.on("request", (req, res) => {
             const u = Url.parse(req.url);
             if (u.pathname !== WSPATH && u.pathname != `${WSPATH}/`) {
-                console.log("request", req.url);
+                debug("request", req.url);
                 res.statusCode = 200;
                 res.end("hello");
             }

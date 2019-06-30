@@ -1,7 +1,10 @@
 import * as io from "socket.io-client";
 import * as net from "net";
 import * as Url from "url";
-import * as HttpsProxyAgent from "https-proxy-agent";
+import * as HttpProxyAgent from "http-proxy-agent";
+import * as Debug from "debug";
+
+const debug = Debug("socket-ws-client");
 
 interface IOption {
   /**
@@ -28,16 +31,17 @@ interface IOption {
 
 function main(opt: IOption) {
   function tryConnectServer() {
+    debug("connect to proxy server", "trying");
     const p = new Promise<SocketIOClient.Socket>(resolve => {
       const query = {
         destHost: opt.destHost,
         destPort: opt.destPort
       };
 
-      let agent: HttpsProxyAgent;
+      let agent: HttpProxyAgent;
       if (opt.agent) {
         const proxyUrl = Url.parse(opt.agent);
-        agent = new HttpsProxyAgent(proxyUrl);
+        agent = new HttpProxyAgent(proxyUrl);
       }
 
       const ws = io(opt.wsProxyHost, {
@@ -47,7 +51,12 @@ function main(opt: IOption) {
       });
 
       ws.on("connect", () => {
+        debug("connect to proxy server", "success");
         resolve(ws);
+      });
+
+      ws.on("event", event => {
+        debug("recevice event", event);
       });
     });
 
@@ -62,26 +71,24 @@ function main(opt: IOption) {
       tryConnectServer().then(ws => {
         wsClient = ws;
 
-        console.log("proxy clinet connect to proxy server", tmpBuffer.length);
-
         let tmp: Buffer;
         while ((tmp = tmpBuffer.pop())) {
           wsClient.emit("req", tmp);
         }
 
         wsClient.on("res", data => {
-          console.log("res", data.length);
-
+          debug("receive res from proxy server", data.length);
           socket.write(data);
         });
         wsClient.on("disconnect", () => {
+          debug("disconnect from proxy server");
           socket.destroy();
         });
       });
 
       // 收到使用者的连接
       socket.on("data", data => {
-        console.log("proxy client data", [
+        debug("receive from tcp client", [
           data.length,
           wsClient && wsClient.connected
         ]);
@@ -93,11 +100,9 @@ function main(opt: IOption) {
       });
     });
     localServer.listen(opt.localPort, async () => {
-      console.log("proxy client listenting", opt.localPort);
+      debug("proxy client listening", opt.localPort);
       const ws = await tryConnectServer();
       ws.close();
-
-      console.log("proxy client try connect proxy server", "success");
       resolve();
     });
   });

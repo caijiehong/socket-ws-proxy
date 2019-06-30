@@ -3,6 +3,9 @@ import * as Url from "url";
 import * as Qs from "querystring";
 import * as net from "net";
 import * as http from "http";
+import * as Debug from "debug";
+
+const debug = Debug("socket-ws-server");
 
 const WSPATH = "/ws";
 
@@ -21,7 +24,7 @@ function main(port: number) {
 
     io.on("connection", client => {
       let lastActive = new Date().getTime();
-      console.log("server receive connection", client.request.url);
+      debug("server receive connection", client.request.url);
 
       const url = Url.parse(client.request.url);
       const qs = Qs.parse(url.query) as {
@@ -38,7 +41,7 @@ function main(port: number) {
             port: parseInt(qs.destPort, 10)
           },
           () => {
-            console.log("proxy server connect to tcp server", tmpBuffer.length);
+            debug("proxy server connect to tcp server", tmpBuffer.length);
             let tmp: Buffer;
             while ((tmp = tmpBuffer.pop())) {
               socket.write(tmp);
@@ -51,7 +54,7 @@ function main(port: number) {
 
         client.on("req", data => {
           lastActive = new Date().getTime();
-          console.log("req", [data.length, socket.connecting]);
+          debug("req", [data.length, socket.connecting]);
 
           if (!socket.connecting) {
             socket.write(data);
@@ -63,7 +66,7 @@ function main(port: number) {
         const clear = () => {
           const now = new Date().getTime();
           if (now - lastActive > 10000) {
-            console.log("destroy after 10s");
+            debug("destroy after 10s");
 
             socket.destroy();
             client.disconnect();
@@ -79,7 +82,7 @@ function main(port: number) {
     });
 
     hServer.listen(port, () => {
-      console.log("proxy server listen to", port);
+      debug("proxy server listen to", port);
     });
 
     hServer.on(
@@ -88,7 +91,7 @@ function main(port: number) {
         const u = Url.parse(req.url);
 
         if (u.pathname !== WSPATH && u.pathname != `${WSPATH}/`) {
-          console.log("request", req.url);
+          debug("request", req.url);
           res.statusCode = 200;
           res.end("hello");
         }
