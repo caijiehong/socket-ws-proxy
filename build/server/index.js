@@ -5,11 +5,12 @@ const Url = require("url");
 const Qs = require("querystring");
 const net = require("net");
 const http = require("http");
+const WSPATH = "/ws";
 function main(port) {
     const p = new Promise(resolve => {
         const hServer = http.createServer();
         const io = IO(hServer, {
-            path: "/ws",
+            path: WSPATH,
             serveClient: false,
             // below are engine.IO options
             pingInterval: 10000,
@@ -65,6 +66,14 @@ function main(port) {
         });
         hServer.listen(port, () => {
             console.log("proxy server listen to", port);
+        });
+        hServer.on("request", (req, res) => {
+            const u = Url.parse(req.url);
+            if (u.pathname !== WSPATH && u.pathname != `${WSPATH}/`) {
+                console.log("request", req.url);
+                res.statusCode = 200;
+                res.end("hello");
+            }
         });
         resolve();
     });

@@ -4,12 +4,14 @@ import * as Qs from "querystring";
 import * as net from "net";
 import * as http from "http";
 
+const WSPATH = "/ws";
+
 function main(port: number) {
   const p = new Promise(resolve => {
     const hServer = http.createServer();
 
     const io = IO(hServer, {
-      path: "/ws",
+      path: WSPATH,
       serveClient: false,
       // below are engine.IO options
       pingInterval: 10000,
@@ -79,6 +81,19 @@ function main(port: number) {
     hServer.listen(port, () => {
       console.log("proxy server listen to", port);
     });
+
+    hServer.on(
+      "request",
+      (req: http.IncomingMessage, res: http.ServerResponse) => {
+        const u = Url.parse(req.url);
+
+        if (u.pathname !== WSPATH && u.pathname != `${WSPATH}/`) {
+          console.log("request", req.url);
+          res.statusCode = 200;
+          res.end("hello");
+        }
+      }
+    );
 
     resolve();
   });
