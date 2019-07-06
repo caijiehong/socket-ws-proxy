@@ -1,0 +1,12 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "DEBUG=socket-ws-* node index.js"
+  },
+  "dependencies": {
+    "socket-ws-proxy": "^0.0.9"
+  }
+}
